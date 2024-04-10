@@ -7,6 +7,8 @@
 
 import UIKit
 import Foundation
+import Contacts
+import ContactsUI
 
 class ContactTableViewController: UIViewController {
     
@@ -17,20 +19,20 @@ class ContactTableViewController: UIViewController {
     var allEmployees: [Employee] = []
     var filteredEmployees: [Employee] = []
     var sectionsData: [(position: Position, employees: [Employee])] = []
+    var contactTableViewDelegate = ContactTableViewDelegate()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // Set delegate for search bar
+        tableView.delegate = contactTableViewDelegate // Set the tableView delegate
+
+        searchBar.showsCancelButton = false
         searchBar.delegate = self
-        
-        // Configure table view
+
         tableView.dataSource = self
-        
-        // Fetch employees for Tallinn and Tartu
+        tableView.delegate = self
+
         fetchEmployees()
-        
-        // Add pull-to-refresh functionality
+
         let refreshControl = UIRefreshControl()
         refreshControl.addTarget(self, action: #selector(refreshData(_:)), for: .valueChanged)
         tableView.refreshControl = refreshControl
@@ -93,6 +95,7 @@ class ContactTableViewController: UIViewController {
     }
 }
 
+//MARK: - Data Source Logic
 extension ContactTableViewController: UITableViewDataSource {
     func numberOfSections(in tableView: UITableView) -> Int {
         return sectionsData.count
@@ -108,34 +111,68 @@ extension ContactTableViewController: UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "employeeCell", for: indexPath)
-
+        
         let employee = sectionsData[indexPath.section].employees[indexPath.row]
         cell.textLabel?.text = "\(employee.fname) \(employee.lname)"
         
+        // Check if there is a matching contact for the employee
+        if employee.hasMatchingContact {
+            // Create the button
+            let button = UIButton(type: .system)
+            let iconConfig = UIImage.SymbolConfiguration(pointSize: 35, weight: .regular)
+            let icon = UIImage(systemName: "person.crop.circle", withConfiguration: iconConfig)
+            button.setImage(icon, for: .normal) // Set the SF Symbol as the image for the normal state
+            button.tintColor = .systemBlue // Set the tint color for the icon
+            button.addTarget(self, action: #selector(viewContactDetails(_:)), for: .touchUpInside)
+            button.frame = CGRect(x: cell.contentView.bounds.width - 40, y: 5, width: 35, height: 35) // Adjust the frame to accommodate the icon
+            
+            // Add the button to the cell's content view
+            cell.contentView.addSubview(button)
+        }
+        
         return cell
     }
+    
+    
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-           let headerView = UIView()
-           headerView.backgroundColor = UIColor.lightGray
+        let headerView = UIView()
+        headerView.backgroundColor = UIColor.lightGray
+        
+        let headerLabel = UILabel(frame: CGRect(x: 15, y: 5, width: tableView.frame.width - 30, height: 20))
+        headerLabel.font = UIFont.boldSystemFont(ofSize: 16)
+        headerLabel.textColor = UIColor.black
+        headerLabel.text = sectionsData[section].position.rawValue
+        headerView.addSubview(headerLabel)
+        
+        return headerView
+    }
+    
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return 30
+    }
+}
 
-           let headerLabel = UILabel(frame: CGRect(x: 15, y: 5, width: tableView.frame.width - 30, height: 20))
-           headerLabel.font = UIFont.boldSystemFont(ofSize: 16)
-           headerLabel.textColor = UIColor.black
-           headerLabel.text = sectionsData[section].position.rawValue
-           headerView.addSubview(headerLabel)
-
-           return headerView
-       }
-       
-       func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-           return 30
-       }
-   }
-
+//MARK: - Searchbar logic
 extension ContactTableViewController: UISearchBarDelegate {
+    func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+        searchBar.showsCancelButton = true
+    }
+    
+    func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
+        searchBar.showsCancelButton = false
+    }
+    
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.text = ""
+        searchBar.resignFirstResponder()
+        searchBar.showsCancelButton = false
+        filteredEmployees = allEmployees
+        updateSectionsData(filteredEmployees)
+        tableView.reloadData()
+    }
+    
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if searchText.isEmpty {
-            // If search text is empty, display all employees
             filteredEmployees = allEmployees
         } else {
             // Filter employees based on search text
@@ -149,6 +186,7 @@ extension ContactTableViewController: UISearchBarDelegate {
             }
         }
         updateSectionsData(filteredEmployees)
+        // Reload table view
         tableView.reloadData()
     }
     
@@ -166,5 +204,46 @@ extension ContactTableViewController: UISearchBarDelegate {
             sectionsData.append((position: position, employees: []))
         }
         sectionsData.sort { $0.position.rawValue < $1.position.rawValue }
+    }
+    
+    func searchBarShouldBeginEditing(_ searchBar: UISearchBar) -> Bool {
+        searchBar.setShowsCancelButton(true, animated: true)
+        return true
+    }
+    
+    func searchBarShouldEndEditing(_ searchBar: UISearchBar) -> Bool {
+        searchBar.setShowsCancelButton(false, animated: true)
+        return true
+    }
+}
+
+//MARK: - Gesture Recognizer
+extension ContactTableViewController: UIGestureRecognizerDelegate {
+    @objc func viewContactDetails(_ sender: UIButton) {
+        // Handle button tap here
+        if let cell = sender.superview?.superview as? UITableViewCell,  // Assuming your button is two levels deep in the view hierarchy
+           let indexPath = tableView.indexPath(for: cell) {
+            let employee = sectionsData[indexPath.section].employees[indexPath.row]
+            // Example: Navigate to the second view controller passing the selected employee
+            let secondViewController = ContactViewController()
+            secondViewController.selectedEmployee = employee
+            navigationController?.pushViewController(secondViewController, animated: true)
+        }
+    }
+}
+ //MARK: - UITableViewDelegate
+extension ContactTableViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        print("Cell tapped")
+        let employee = sectionsData[indexPath.section].employees[indexPath.row]
+        let contactVC = ContactViewController()
+        contactVC.selectedEmployee = employee
+        
+        guard let navigationController = self.navigationController else {
+            print("Navigation controller is nil")
+            return
+        }
+        
+        navigationController.pushViewController(contactVC, animated: true)
     }
 }

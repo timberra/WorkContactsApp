@@ -15,6 +15,7 @@ struct Employee: Codable {
     let position: Position
     let contactDetails: ContactDetails
     let projects: [String]?
+    var hasMatchingContact: Bool = false
 
     private enum CodingKeys: String, CodingKey {
         case fname, lname, position, contactDetails
