@@ -25,26 +25,27 @@ class ContactViewController: UIViewController {
         view.backgroundColor = .white
         
         // Labels for name, position, email, and phone number
-        let boldFont = UIFont.boldSystemFont(ofSize: 17.0)
-        let boldAttributes: [NSAttributedString.Key: Any] = [NSAttributedString.Key.font: boldFont]
+        let boldYellowFont = UIFont.boldSystemFont(ofSize: 12.0)
+        let smallBlackFont = UIFont.systemFont(ofSize: 16.0)
+        let boldBlackFont = UIFont.boldSystemFont(ofSize: 21.0)
+        let boldYellowAttributes: [NSAttributedString.Key: Any] = [NSAttributedString.Key.font: boldYellowFont, NSAttributedString.Key.foregroundColor: UIColor.systemYellow]
+        let smallBlackAttributes: [NSAttributedString.Key: Any] = [NSAttributedString.Key.font: smallBlackFont, NSAttributedString.Key.foregroundColor: UIColor.black]
+        let boldBlackAttributes: [NSAttributedString.Key: Any] = [NSAttributedString.Key.font: boldBlackFont, NSAttributedString.Key.foregroundColor: UIColor.black]
         
-        let fullName = NSMutableAttributedString(string: "\(selectedEmployee.fname) \(selectedEmployee.lname)")
-        fullName.addAttributes(boldAttributes, range: NSRange(location: 0, length: selectedEmployee.fname.count))
-        fullName.addAttributes(boldAttributes, range: NSRange(location: selectedEmployee.fname.count + 1, length: selectedEmployee.lname.count))
-
-        let nameLabel = createLabel(with: fullName, titleText: "", highlightWords: nil)
-        let positionLabel = createLabel(with: "Position:", titleText: "Position:", highlightWords: ["Position:"])
-        let emailLabel = createLabel(with: "Email:", titleText: "Email:", highlightWords: ["Email:"])
-        var phoneLabel: UILabel?
-        if let phone = selectedEmployee.contactDetails.phone, !phone.isEmpty {
-            phoneLabel = createLabel(with: "Phone Number:", titleText: "Phone Number:", highlightWords: ["Phone Number:"])
-        }
+        let fullName = "\(selectedEmployee.fname) \(selectedEmployee.lname)"
+        let nameLabel = createLabel(with: fullName, attributes: boldBlackAttributes)
         
-        let positionInfoLabel = createLabel(with: selectedEmployee.position.rawValue, titleText: nil, highlightWords: nil)
-        let emailInfoLabel = createLabel(with: selectedEmployee.contactDetails.email, titleText: nil, highlightWords: nil)
+        let positionTitleLabel = createLabel(with: "POSITION", attributes: boldYellowAttributes)
+        let positionInfoLabel = createLabel(with: selectedEmployee.position.rawValue, attributes: smallBlackAttributes)
+        
+        let emailTitleLabel = createLabel(with: "EMAIL", attributes: boldYellowAttributes)
+        let emailInfoLabel = createLabel(with: selectedEmployee.contactDetails.email, attributes: smallBlackAttributes)
+        
+        var phoneTitleLabel: UILabel?
         var phoneInfoLabel: UILabel?
         if let phone = selectedEmployee.contactDetails.phone, !phone.isEmpty {
-            phoneInfoLabel = createLabel(with: phone, titleText: nil, highlightWords: nil)
+            phoneTitleLabel = createLabel(with: "PHONE NUMBER", attributes: boldYellowAttributes)
+            phoneInfoLabel = createLabel(with: phone, attributes: smallBlackAttributes)
         }
         
         // Table view for projects
@@ -56,12 +57,12 @@ class ContactViewController: UIViewController {
         
         // Add subviews
         view.addSubview(nameLabel)
-        view.addSubview(positionLabel)
+        view.addSubview(positionTitleLabel)
         view.addSubview(positionInfoLabel)
-        view.addSubview(emailLabel)
+        view.addSubview(emailTitleLabel)
         view.addSubview(emailInfoLabel)
-        if let phoneLabel = phoneLabel {
-            view.addSubview(phoneLabel)
+        if let phoneTitleLabel = phoneTitleLabel {
+            view.addSubview(phoneTitleLabel)
         }
         if let phoneInfoLabel = phoneInfoLabel {
             view.addSubview(phoneInfoLabel)
@@ -74,34 +75,38 @@ class ContactViewController: UIViewController {
             nameLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             nameLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             
-            positionLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 20),
-            positionLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
+            positionTitleLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 20),
+            positionTitleLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             
-            positionInfoLabel.leadingAnchor.constraint(equalTo: positionLabel.trailingAnchor, constant: 8),
-            positionInfoLabel.centerYAnchor.constraint(equalTo: positionLabel.centerYAnchor),
+            positionInfoLabel.topAnchor.constraint(equalTo: positionTitleLabel.bottomAnchor, constant: 4),
+            positionInfoLabel.leadingAnchor.constraint(equalTo: positionTitleLabel.leadingAnchor),
+            positionInfoLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20), // Limit trailing edge
             
-            emailLabel.topAnchor.constraint(equalTo: positionLabel.bottomAnchor, constant: 10),
-            emailLabel.leadingAnchor.constraint(equalTo: positionLabel.leadingAnchor),
+            emailTitleLabel.topAnchor.constraint(equalTo: positionInfoLabel.bottomAnchor, constant: 20),
+            emailTitleLabel.leadingAnchor.constraint(equalTo: positionTitleLabel.leadingAnchor),
             
-            emailInfoLabel.leadingAnchor.constraint(equalTo: emailLabel.trailingAnchor, constant: 8),
-            emailInfoLabel.centerYAnchor.constraint(equalTo: emailLabel.centerYAnchor)
+            emailInfoLabel.topAnchor.constraint(equalTo: emailTitleLabel.bottomAnchor, constant: 4),
+            emailInfoLabel.leadingAnchor.constraint(equalTo: emailTitleLabel.leadingAnchor),
+            emailInfoLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20), // Limit trailing edge
         ]
 
-        if let phoneLabel = phoneLabel {
+        if let phoneTitleLabel = phoneTitleLabel {
             constraints.append(contentsOf: [
-                phoneLabel.topAnchor.constraint(equalTo: emailLabel.bottomAnchor, constant: 10),
-                phoneLabel.leadingAnchor.constraint(equalTo: positionLabel.leadingAnchor),
+                phoneTitleLabel.topAnchor.constraint(equalTo: emailInfoLabel.bottomAnchor, constant: 20),
+                phoneTitleLabel.leadingAnchor.constraint(equalTo: positionTitleLabel.leadingAnchor),
                 
-                phoneInfoLabel!.leadingAnchor.constraint(equalTo: phoneLabel.trailingAnchor, constant: 8),
-                phoneInfoLabel!.centerYAnchor.constraint(equalTo: phoneLabel.centerYAnchor)
+                phoneInfoLabel!.topAnchor.constraint(equalTo: phoneTitleLabel.bottomAnchor, constant: 4),
+                phoneInfoLabel!.leadingAnchor.constraint(equalTo: positionTitleLabel.leadingAnchor),
+                phoneInfoLabel!.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20) // Limit trailing edge
             ])
         }
 
         constraints.append(contentsOf: [
-            projectsTableView.topAnchor.constraint(equalTo: (phoneLabel != nil ? phoneLabel!.bottomAnchor : emailLabel.bottomAnchor), constant: 20),
-            projectsTableView.leadingAnchor.constraint(equalTo: positionLabel.leadingAnchor),
+            projectsTableView.topAnchor.constraint(equalTo: (phoneTitleLabel != nil ? phoneInfoLabel!.bottomAnchor : emailInfoLabel.bottomAnchor), constant: 44), // Increase the padding here
+            projectsTableView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             projectsTableView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            projectsTableView.heightAnchor.constraint(equalToConstant: 120), // Adjust height as needed
+            projectsTableView.bottomAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20), // Ensure projects table view doesn't exceed bottom
+            projectsTableView.heightAnchor.constraint(equalToConstant: 120), // Adjust height
             
             contactButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             contactButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
@@ -111,11 +116,7 @@ class ContactViewController: UIViewController {
         
         // Display "PROJECTS" label if projects are available
         if let projects = selectedEmployee.projects, !projects.isEmpty {
-            let projectsLabel = UILabel()
-            projectsLabel.translatesAutoresizingMaskIntoConstraints = false
-            projectsLabel.text = "PROJECTS"
-            projectsLabel.font = UIFont.systemFont(ofSize: 14.0) // Set the font size here
-            projectsLabel.textColor = .systemYellow // Optionally, set the text color
+            let projectsLabel = createLabel(with: "PROJECTS", attributes: boldYellowAttributes)
             view.addSubview(projectsLabel)
             
             NSLayoutConstraint.activate([
@@ -125,51 +126,11 @@ class ContactViewController: UIViewController {
         }
     }
     
-    private func createLabel(with attributedText: NSAttributedString, titleText: String? = nil, highlightWords: [String]? = nil) -> UILabel {
+    private func createLabel(with text: String, attributes: [NSAttributedString.Key: Any]) -> UILabel {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
+        label.attributedText = NSAttributedString(string: text, attributes: attributes)
         label.numberOfLines = 0
-        
-        // Set the label's attributed text
-        if let titleText = titleText {
-            let mutableAttributedString = NSMutableAttributedString(string: titleText)
-            mutableAttributedString.append(attributedText)
-            label.attributedText = mutableAttributedString
-            if let highlightWords = highlightWords {
-                let attributedString = NSMutableAttributedString(attributedString: mutableAttributedString)
-                for word in highlightWords {
-                    let range = (mutableAttributedString.string as NSString).range(of: word)
-                    attributedString.addAttribute(NSAttributedString.Key.foregroundColor, value: UIColor.systemYellow, range: range)
-                }
-                label.attributedText = attributedString
-            }
-        } else {
-            label.attributedText = attributedText
-        }
-        
-        return label
-    }
-    
-    private func createLabel(with text: String, titleText: String? = nil, highlightWords: [String]? = nil) -> UILabel {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.numberOfLines = 0
-        
-        // Set the label's text
-        if let titleText = titleText {
-            label.attributedText = NSAttributedString(string: titleText, attributes: [NSAttributedString.Key.foregroundColor: UIColor.black])
-            if let highlightWords = highlightWords {
-                let attributedString = NSMutableAttributedString(string: text)
-                for word in highlightWords {
-                    let range = (text as NSString).range(of: word)
-                    attributedString.addAttribute(NSAttributedString.Key.foregroundColor, value: UIColor.systemYellow, range: range)
-                }
-                label.attributedText = attributedString
-            }
-        } else {
-            label.text = text
-        }
-        
         return label
     }
     

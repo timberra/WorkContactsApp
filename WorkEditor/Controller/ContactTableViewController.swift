@@ -247,3 +247,5 @@ extension ContactTableViewController: UITableViewDelegate {
         navigationController.pushViewController(contactVC, animated: true)
     }
 }
+
+
