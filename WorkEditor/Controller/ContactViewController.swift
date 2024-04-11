@@ -52,9 +52,6 @@ class ContactViewController: UIViewController {
         projectsTableView.delegate = self
         projectsTableView.dataSource = self
         
-        // Button for viewing contact
-        let contactButton = createButton(title: "View Contact", action: #selector(viewContactDetails(_:)), isHidden: !selectedEmployee.hasMatchingContact)
-        
         // Add subviews
         view.addSubview(nameLabel)
         view.addSubview(positionTitleLabel)
@@ -68,7 +65,6 @@ class ContactViewController: UIViewController {
             view.addSubview(phoneInfoLabel)
         }
         view.addSubview(projectsTableView)
-        view.addSubview(contactButton)
         
         // Layout constraints
         var constraints: [NSLayoutConstraint] = [
@@ -105,11 +101,7 @@ class ContactViewController: UIViewController {
             projectsTableView.topAnchor.constraint(equalTo: (phoneTitleLabel != nil ? phoneInfoLabel!.bottomAnchor : emailInfoLabel.bottomAnchor), constant: 44), // Increase the padding here
             projectsTableView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             projectsTableView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            projectsTableView.bottomAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20), // Ensure projects table view doesn't exceed bottom
-            projectsTableView.heightAnchor.constraint(equalToConstant: 120), // Adjust height
-            
-            contactButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            contactButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
+            projectsTableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20), // Ensure projects table view doesn't exceed bottom
         ])
 
         NSLayoutConstraint.activate(constraints)
@@ -141,10 +133,6 @@ class ContactViewController: UIViewController {
         button.isHidden = isHidden
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
-    }
-    
-    @objc func viewContactDetails(_ sender: UIButton) {
-        // Your implementation for viewing contact details
     }
 }
 

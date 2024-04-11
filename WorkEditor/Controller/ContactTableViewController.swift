@@ -220,11 +220,9 @@ extension ContactTableViewController: UISearchBarDelegate {
 //MARK: - Gesture Recognizer
 extension ContactTableViewController: UIGestureRecognizerDelegate {
     @objc func viewContactDetails(_ sender: UIButton) {
-        // Handle button tap here
-        if let cell = sender.superview?.superview as? UITableViewCell,  // Assuming your button is two levels deep in the view hierarchy
+        if let cell = sender.superview?.superview as? UITableViewCell,
            let indexPath = tableView.indexPath(for: cell) {
             let employee = sectionsData[indexPath.section].employees[indexPath.row]
-            // Example: Navigate to the second view controller passing the selected employee
             let secondViewController = ContactViewController()
             secondViewController.selectedEmployee = employee
             navigationController?.pushViewController(secondViewController, animated: true)
