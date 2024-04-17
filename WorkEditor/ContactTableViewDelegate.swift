@@ -13,12 +13,10 @@ class ContactTableViewDelegate: NSObject, UITableViewDelegate {
     var sectionsData: [(position: Position, employees: [Employee])] = []
     
     // MARK: - UITableViewDelegate
-    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         guard let navigationController = navigationController else {
             return
         }
-        
         let employee = sectionsData[indexPath.section].employees[indexPath.row]
         let contactVC = ContactViewController()
         contactVC.selectedEmployee = employee
