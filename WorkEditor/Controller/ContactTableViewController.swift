@@ -11,14 +11,13 @@ import Contacts
 import ContactsUI
 
 class ContactTableViewController: UIViewController {
-    
     @IBOutlet weak var searchBar: UISearchBar!
     @IBOutlet weak var tableView: UITableView!
-    
     var allEmployees: [Employee] = []
     var filteredEmployees: [Employee] = []
     var sectionsData: [(position: Position, employees: [Employee])] = []
     var contactTableViewDelegate = ContactTableViewDelegate()
+    var phoneContactNames: Set<String> = []
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.delegate = contactTableViewDelegate // Set the tableView delegate
@@ -32,17 +31,15 @@ class ContactTableViewController: UIViewController {
         tableView.refreshControl = refreshControl
     }
     @objc func refreshData(_ sender: Any) {
-        // Refresh both Tallinn and Tartu employees
         fetchEmployees()
     }
     func fetchEmployees() {
-        // Fetch employees for both Tallinn and Tartu
         APIManager.fetchTallinnEmployees { [weak self] result in
             guard let self = self else { return }
-            
+
             switch result {
             case .success(let tallinnEmployees):
-                self.allEmployees.append(contentsOf: tallinnEmployees)
+                self.addUniqueEmployees(tallinnEmployees)
                 self.fetchTartuEmployees()
             case .failure(_):
                 DispatchQueue.main.async {
@@ -54,13 +51,12 @@ class ContactTableViewController: UIViewController {
     func fetchTartuEmployees() {
         APIManager.fetchTartuEmployees { [weak self] result in
             guard let self = self else { return }
-            
             switch result {
             case .success(let tartuEmployees):
-                self.allEmployees.append(contentsOf: tartuEmployees)
+                self.addUniqueEmployees(tartuEmployees)
+                self.fetchPhoneContacts() // Fetch phone contacts after fetching employees
                 self.updateSectionsData()
                 DispatchQueue.main.async {
-                    // Reload table view after fetching both Tallinn and Tartu employees
                     self.tableView.reloadData()
                     self.tableView.refreshControl?.endRefreshing()
                 }
@@ -68,6 +64,47 @@ class ContactTableViewController: UIViewController {
                 DispatchQueue.main.async {
                     self.tableView.refreshControl?.endRefreshing()
                 }
+            }
+        }
+    }
+    func addUniqueEmployees(_ employees: [Employee]) {
+        var uniqueEmployeeIdentifiers: Set<String> = Set()
+        let newEmployees = employees.filter { employee in
+            let identifier = "\(employee.fname.lowercased()) \(employee.lname.lowercased())"
+            let isUnique = !uniqueEmployeeIdentifiers.contains(identifier)
+            if isUnique {
+                uniqueEmployeeIdentifiers.insert(identifier)
+            }
+            return isUnique
+        }
+        let uniqueNewEmployees = newEmployees.filter { newEmployee in
+            let identifier = "\(newEmployee.fname.lowercased()) \(newEmployee.lname.lowercased())"
+            return !self.allEmployees.contains { existingEmployee in
+                let existingIdentifier = "\(existingEmployee.fname.lowercased()) \(existingEmployee.lname.lowercased())"
+                return existingIdentifier == identifier
+            }
+        }
+        allEmployees.append(contentsOf: uniqueNewEmployees)
+    }
+    func fetchPhoneContacts() {
+        let store = CNContactStore()
+        store.requestAccess(for: .contacts) { [weak self] granted, error in
+            guard let self = self, granted else { return }
+            let keys = [CNContactGivenNameKey, CNContactFamilyNameKey] as [CNKeyDescriptor]
+            let request = CNContactFetchRequest(keysToFetch: keys)
+            do {
+                var uniquePhoneContactNames: Set<String> = Set() // Set to store unique phone contact names
+                try store.enumerateContacts(with: request) { contact, _ in
+                    let fullName = "\(contact.givenName) \(contact.familyName)"
+                    uniquePhoneContactNames.insert(fullName.lowercased())
+                    print("Contact: \(fullName)")
+                }
+                self.phoneContactNames = uniquePhoneContactNames
+                DispatchQueue.main.async {
+                    self.tableView.reloadData()
+                }
+            } catch {
+                print("Error fetching phone contacts: \(error.localizedDescription)")
             }
         }
     }
@@ -96,21 +133,26 @@ extension ContactTableViewController: UITableViewDataSource {
         let cell = tableView.dequeueReusableCell(withIdentifier: "employeeCell", for: indexPath)
         let employee = sectionsData[indexPath.section].employees[indexPath.row]
         cell.textLabel?.text = "\(employee.fname) \(employee.lname)"
-        // Check if there is a matching contact for the employee
-        if employee.hasMatchingContact {
-            // Create the button
+        let contactExists = phoneContactNames.contains("\(employee.fname.lowercased()) \(employee.lname.lowercased())")
+        if contactExists {
             let button = UIButton(type: .system)
-            button.setTitle("More", for: .normal) // Set the title for the normal state
-            button.titleLabel?.font = UIFont.systemFont(ofSize: 15) // Set the font for the title
-            button.setTitleColor(.systemBlue, for: .normal) // Set the text color for the title
+            button.setTitle("Contact Exists", for: .normal)
             button.addTarget(self, action: #selector(viewContactDetails(_:)), for: .touchUpInside)
-            button.frame = CGRect(x: cell.contentView.bounds.width - 60, y: 5, width: 50, height: 35) // Adjust frame as needed
-            // Add the button to the cell's content view
+            button.tag = indexPath.row
+            let buttonWidth: CGFloat = 100
+            let buttonHeight: CGFloat = 30
+            button.frame = CGRect(x: cell.contentView.frame.width - buttonWidth - 10, y: (cell.contentView.frame.height - buttonHeight) / 2, width: buttonWidth, height: buttonHeight)
             cell.contentView.addSubview(button)
+        } else {
+            // Remove any existing "Contact Exists" button
+            for subview in cell.contentView.subviews {
+                if let button = subview as? UIButton, button.titleLabel?.text == "Contact Exists" {
+                    button.removeFromSuperview()
+                }
+            }
         }
         return cell
     }
-
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let headerView = UIView()
         headerView.backgroundColor = UIColor.lightGray
@@ -185,13 +227,25 @@ extension ContactTableViewController: UISearchBarDelegate {
 //MARK: - Gesture Recognizer
 extension ContactTableViewController: UIGestureRecognizerDelegate {
     @objc func viewContactDetails(_ sender: UIButton) {
-        if let cell = sender.superview?.superview as? UITableViewCell,
-           let indexPath = tableView.indexPath(for: cell) {
-            let employee = sectionsData[indexPath.section].employees[indexPath.row]
-            let secondViewController = ContactViewController()
-            secondViewController.selectedEmployee = employee
-            navigationController?.pushViewController(secondViewController, animated: true)
+        let alertController = UIAlertController(title: nil, message: "Do you want to open Contacts?", preferredStyle: .alert)
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+        alertController.addAction(cancelAction)
+        let openAction = UIAlertAction(title: "Open", style: .default) { _ in
+            let store = CNContactStore()
+            store.requestAccess(for: .contacts) { granted, error in
+                if granted {
+                    DispatchQueue.main.async {
+                        let contactPicker = CNContactPickerViewController()
+                        contactPicker.delegate = self
+                        self.present(contactPicker, animated: true, completion: nil)
+                    }
+                } else {
+                    print("Contacts access denied")
+                }
+            }
         }
+        alertController.addAction(openAction)
+        present(alertController, animated: true, completion: nil)
     }
 }
 //MARK: - UITableViewDelegate
@@ -200,11 +254,14 @@ extension ContactTableViewController: UITableViewDelegate {
         let employee = sectionsData[indexPath.section].employees[indexPath.row]
         let contactVC = ContactViewController()
         contactVC.selectedEmployee = employee
-        
         guard let navigationController = self.navigationController else {
             return
         }
-        
         navigationController.pushViewController(contactVC, animated: true)
+    }
+}
+extension ContactTableViewController: CNContactPickerDelegate {
+    func contactPicker(_ picker: CNContactPickerViewController, didSelect contact: CNContact) {
+        // Handle contact selection here if needed
     }
 }

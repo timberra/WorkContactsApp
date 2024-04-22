@@ -1,10 +1,3 @@
-//
-//  ContactViewController.swift
-//  WorkEditor
-//
-//  Created by liga.griezne on 09/04/2024.
-//
-
 import Contacts
 import ContactsUI
 import UIKit
@@ -12,7 +5,6 @@ import UIKit
 class ContactViewController: UIViewController {
     
     var selectedEmployee: Employee!
-    
     private let projectsTableView: UITableView = {
         let tableView = UITableView()
         tableView.translatesAutoresizingMaskIntoConstraints = false
@@ -50,12 +42,8 @@ class ContactViewController: UIViewController {
         view.addSubview(positionInfoLabel)
         view.addSubview(emailTitleLabel)
         view.addSubview(emailInfoLabel)
-        if let phoneTitleLabel = phoneTitleLabel {
-            view.addSubview(phoneTitleLabel)
-        }
-        if let phoneInfoLabel = phoneInfoLabel {
-            view.addSubview(phoneInfoLabel)
-        }
+        phoneTitleLabel.map { view.addSubview($0) }
+        phoneInfoLabel.map { view.addSubview($0) }
         view.addSubview(projectsTableView)
         // Layout constraints
         var constraints: [NSLayoutConstraint] = [
@@ -65,24 +53,24 @@ class ContactViewController: UIViewController {
             positionTitleLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             positionInfoLabel.topAnchor.constraint(equalTo: positionTitleLabel.bottomAnchor, constant: 4),
             positionInfoLabel.leadingAnchor.constraint(equalTo: positionTitleLabel.leadingAnchor),
-            positionInfoLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20), // Limit trailing edge
+            positionInfoLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
             emailTitleLabel.topAnchor.constraint(equalTo: positionInfoLabel.bottomAnchor, constant: 20),
             emailTitleLabel.leadingAnchor.constraint(equalTo: positionTitleLabel.leadingAnchor),
             emailInfoLabel.topAnchor.constraint(equalTo: emailTitleLabel.bottomAnchor, constant: 4),
             emailInfoLabel.leadingAnchor.constraint(equalTo: emailTitleLabel.leadingAnchor),
             emailInfoLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
         ]
-        if let phoneTitleLabel = phoneTitleLabel {
+        if let phoneTitleLabel = phoneTitleLabel, let phoneInfoLabel = phoneInfoLabel {
             constraints.append(contentsOf: [
                 phoneTitleLabel.topAnchor.constraint(equalTo: emailInfoLabel.bottomAnchor, constant: 20),
                 phoneTitleLabel.leadingAnchor.constraint(equalTo: positionTitleLabel.leadingAnchor),
-                phoneInfoLabel!.topAnchor.constraint(equalTo: phoneTitleLabel.bottomAnchor, constant: 4),
-                phoneInfoLabel!.leadingAnchor.constraint(equalTo: positionTitleLabel.leadingAnchor),
-                phoneInfoLabel!.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20)
+                phoneInfoLabel.topAnchor.constraint(equalTo: phoneTitleLabel.bottomAnchor, constant: 4),
+                phoneInfoLabel.leadingAnchor.constraint(equalTo: positionTitleLabel.leadingAnchor),
+                phoneInfoLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20)
             ])
         }
         constraints.append(contentsOf: [
-            projectsTableView.topAnchor.constraint(equalTo: (phoneTitleLabel != nil ? phoneInfoLabel!.bottomAnchor : emailInfoLabel.bottomAnchor), constant: 44), // Increase the padding here
+            projectsTableView.topAnchor.constraint(equalTo: (phoneInfoLabel?.bottomAnchor ?? emailInfoLabel.bottomAnchor), constant: 44),
             projectsTableView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             projectsTableView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
             projectsTableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
