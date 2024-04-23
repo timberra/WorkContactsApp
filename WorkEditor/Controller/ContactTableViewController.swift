@@ -30,6 +30,7 @@ class ContactTableViewController: UIViewController {
         refreshControl.addTarget(self, action: #selector(refreshData(_:)), for: .valueChanged)
         tableView.refreshControl = refreshControl
     }
+//MARK: - Data fetching/refreshing
     @objc func refreshData(_ sender: Any) {
         showLoadingMessage("Refreshing data...")
         fetchEmployees()
@@ -101,7 +102,6 @@ class ContactTableViewController: UIViewController {
                 try store.enumerateContacts(with: request) { contact, _ in
                     let fullName = "\(contact.givenName) \(contact.familyName)"
                     uniquePhoneContactNames.insert(fullName.lowercased())
-                    print("Contact: \(fullName)")
                 }
                 self.phoneContactNames = uniquePhoneContactNames
                 DispatchQueue.main.async {
@@ -247,7 +247,6 @@ extension ContactTableViewController: UISearchBarDelegate {
 //MARK: - Gesture Recognizer
 extension ContactTableViewController: UIGestureRecognizerDelegate {
     @objc func viewContactDetails(_ sender: UIButton) {
-        // Retrieve the index path of the cell containing the button
         guard let cell = sender.superview?.superview as? UITableViewCell,
               let indexPath = tableView.indexPath(for: cell),
               let employee = getEmployee(at: indexPath) else {

@@ -1,3 +1,10 @@
+//
+//  ContactViewController.swift
+//  WorkEditor
+//
+//  Created by liga.griezne on 09/04/2024.
+//
+
 import Contacts
 import ContactsUI
 import UIKit
@@ -14,7 +21,7 @@ class ContactViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
-        // Labels for name, position, email, and phone number
+        configureNavigationBar()
         let boldYellowFont = UIFont.boldSystemFont(ofSize: 12.0)
         let smallBlackFont = UIFont.systemFont(ofSize: 16.0)
         let boldBlackFont = UIFont.boldSystemFont(ofSize: 21.0)
@@ -33,10 +40,8 @@ class ContactViewController: UIViewController {
             phoneTitleLabel = createLabel(with: "PHONE NUMBER", attributes: boldYellowAttributes)
             phoneInfoLabel = createLabel(with: phone, attributes: smallBlackAttributes)
         }
-        // Table view for projects
         projectsTableView.delegate = self
         projectsTableView.dataSource = self
-        // Add subviews
         view.addSubview(nameLabel)
         view.addSubview(positionTitleLabel)
         view.addSubview(positionInfoLabel)
@@ -45,7 +50,7 @@ class ContactViewController: UIViewController {
         phoneTitleLabel.map { view.addSubview($0) }
         phoneInfoLabel.map { view.addSubview($0) }
         view.addSubview(projectsTableView)
-        // Layout constraints
+        //MARK: -Layout constraints
         var constraints: [NSLayoutConstraint] = [
             nameLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             nameLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
@@ -92,15 +97,45 @@ class ContactViewController: UIViewController {
         label.numberOfLines = 0
         return label
     }
-    private func createButton(title: String, action: Selector, isHidden: Bool) -> UIButton {
-        let button = UIButton(type: .system)
-        button.setTitle(title, for: .normal)
-        button.addTarget(self, action: action, for: .touchUpInside)
-        button.isHidden = isHidden
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
+    //MARK: - NavBar contact button
+    private func configureNavigationBar() {
+        let store = CNContactStore()
+        let predicate = CNContact.predicateForContacts(matchingName: "\(selectedEmployee.fname) \(selectedEmployee.lname)")
+        let keys = [CNContactViewController.descriptorForRequiredKeys()] as [CNKeyDescriptor]
+        do {
+            let contacts = try store.unifiedContacts(matching: predicate, keysToFetch: keys)
+            if let _ = contacts.first { // Check if the contact exists
+                let button = UIButton(type: .system)
+                button.setImage(UIImage(systemName: "person.crop.circle"), for: .normal)
+                button.addTarget(self, action: #selector(viewContact), for: .touchUpInside)
+                button.frame = CGRect(x: 0, y: 0, width: 40, height: 40)
+                let barButton = UIBarButtonItem(customView: button)
+                navigationItem.rightBarButtonItem = barButton
+            }
+        } catch {
+            print("Error fetching contact: \(error)")
+        }
+    }
+    @objc private func viewContact() {
+        let store = CNContactStore()
+        let predicate = CNContact.predicateForContacts(matchingName: "\(selectedEmployee.fname) \(selectedEmployee.lname)")
+        let keys = [CNContactViewController.descriptorForRequiredKeys()] as [CNKeyDescriptor]
+        do {
+            let contacts = try store.unifiedContacts(matching: predicate, keysToFetch: keys)
+            guard let contact = contacts.first else {
+                print("Contact not found.")
+                return
+            }
+            let contactViewController = CNContactViewController(for: contact)
+            contactViewController.allowsActions = false
+            contactViewController.allowsEditing = false
+            navigationController?.pushViewController(contactViewController, animated: true)
+        } catch {
+            print("Error fetching contact: \(error)")
+        }
     }
 }
+//MARK: - Data Source/View Delegate
 extension ContactViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return selectedEmployee.projects?.count ?? 0

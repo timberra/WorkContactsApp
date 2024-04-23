@@ -16,9 +16,6 @@ struct Employee: Codable {
     let position: Position
     let contactDetails: ContactDetails
     let projects: [String]?
-//    var hasMatchingContact: Bool = false
-//    var contactInfo: CNContact?
-
     private enum CodingKeys: String, CodingKey {
         case fname, lname, position, contactDetails
         case projects
@@ -28,17 +25,14 @@ struct Employee: Codable {
 struct ContactDetails: Codable {
     let email: String
     let phone: String?
-
     private enum CodingKeys: String, CodingKey {
         case email, phone
     }
-
     init(email: String, phone: String? = nil) {
         self.email = email
         self.phone = phone
     }
 }
-
 enum Position: String, Codable {
     case IOS
     case ANDROID
