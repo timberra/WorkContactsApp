@@ -36,7 +36,6 @@ class ContactTableViewController: UIViewController {
     func fetchEmployees() {
         APIManager.fetchTallinnEmployees { [weak self] result in
             guard let self = self else { return }
-
             switch result {
             case .success(let tallinnEmployees):
                 self.addUniqueEmployees(tallinnEmployees)
@@ -136,15 +135,14 @@ extension ContactTableViewController: UITableViewDataSource {
         let contactExists = phoneContactNames.contains("\(employee.fname.lowercased()) \(employee.lname.lowercased())")
         if contactExists {
             let button = UIButton(type: .system)
-            button.setTitle("Contact Exists", for: .normal)
+            button.setImage(UIImage(systemName: "person.crop.circle"), for: .normal)
             button.addTarget(self, action: #selector(viewContactDetails(_:)), for: .touchUpInside)
             button.tag = indexPath.row
-            let buttonWidth: CGFloat = 100
+            let buttonWidth: CGFloat = 30
             let buttonHeight: CGFloat = 30
             button.frame = CGRect(x: cell.contentView.frame.width - buttonWidth - 10, y: (cell.contentView.frame.height - buttonHeight) / 2, width: buttonWidth, height: buttonHeight)
             cell.contentView.addSubview(button)
         } else {
-            // Remove any existing "Contact Exists" button
             for subview in cell.contentView.subviews {
                 if let button = subview as? UIButton, button.titleLabel?.text == "Contact Exists" {
                     button.removeFromSuperview()
@@ -187,7 +185,6 @@ extension ContactTableViewController: UISearchBarDelegate {
         if searchText.isEmpty {
             filteredEmployees = allEmployees
         } else {
-            // Filter employees based on search text
             filteredEmployees = allEmployees.filter { employee in
                 let searchString = searchText.lowercased()
                 return employee.fname.lowercased().contains(searchString) ||
@@ -227,41 +224,53 @@ extension ContactTableViewController: UISearchBarDelegate {
 //MARK: - Gesture Recognizer
 extension ContactTableViewController: UIGestureRecognizerDelegate {
     @objc func viewContactDetails(_ sender: UIButton) {
-        let alertController = UIAlertController(title: nil, message: "Do you want to open Contacts?", preferredStyle: .alert)
+        // Retrieve the index path of the cell containing the button
+        guard let cell = sender.superview?.superview as? UITableViewCell,
+              let indexPath = tableView.indexPath(for: cell),
+              let employee = getEmployee(at: indexPath) else {
+            return
+        }
+        let fullName = "\(employee.fname) \(employee.lname)"
+        let alertController = UIAlertController(title: nil, message: "Do you want to open Contacts for \(fullName)?", preferredStyle: .alert)
         let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
         alertController.addAction(cancelAction)
         let openAction = UIAlertAction(title: "Open", style: .default) { _ in
-            let store = CNContactStore()
-            store.requestAccess(for: .contacts) { granted, error in
-                if granted {
-                    DispatchQueue.main.async {
-                        let contactPicker = CNContactPickerViewController()
-                        contactPicker.delegate = self
-                        self.present(contactPicker, animated: true, completion: nil)
-                    }
-                } else {
-                    print("Contacts access denied")
-                }
-            }
+            // Open the phone contact for the employee
+            self.openPhoneContact(for: employee)
         }
         alertController.addAction(openAction)
         present(alertController, animated: true, completion: nil)
+    }
+    func getEmployee(at indexPath: IndexPath) -> Employee? {
+        return sectionsData[indexPath.section].employees[indexPath.row]
+    }
+    func openPhoneContact(for employee: Employee) {
+        let store = CNContactStore()
+        let predicate = CNContact.predicateForContacts(matchingName: "\(employee.fname) \(employee.lname)")
+        let keys = [CNContactViewController.descriptorForRequiredKeys()] as [CNKeyDescriptor]
+        do {
+            let contacts = try store.unifiedContacts(matching: predicate, keysToFetch: keys)
+            guard let contact = contacts.first else {
+                print("Contact not found.")
+                return
+            }
+            let contactViewController = CNContactViewController(for: contact)
+            contactViewController.allowsActions = false
+            contactViewController.allowsEditing = false
+            navigationController?.pushViewController(contactViewController, animated: true)
+        } catch {
+            print("Error fetching contact: \(error)")
+        }
     }
 }
 //MARK: - UITableViewDelegate
 extension ContactTableViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let employee = sectionsData[indexPath.section].employees[indexPath.row]
-        let contactVC = ContactViewController()
-        contactVC.selectedEmployee = employee
-        guard let navigationController = self.navigationController else {
+        guard let employee = getEmployee(at: indexPath) else {
             return
         }
-        navigationController.pushViewController(contactVC, animated: true)
-    }
-}
-extension ContactTableViewController: CNContactPickerDelegate {
-    func contactPicker(_ picker: CNContactPickerViewController, didSelect contact: CNContact) {
-        // Handle contact selection here if needed
+        let contactVC = ContactViewController()
+        contactVC.selectedEmployee = employee
+        navigationController?.pushViewController(contactVC, animated: true)
     }
 }
