@@ -31,6 +31,7 @@ class ContactTableViewController: UIViewController {
         tableView.refreshControl = refreshControl
     }
     @objc func refreshData(_ sender: Any) {
+        showLoadingMessage("Refreshing data...")
         fetchEmployees()
     }
     func fetchEmployees() {
@@ -40,9 +41,10 @@ class ContactTableViewController: UIViewController {
             case .success(let tallinnEmployees):
                 self.addUniqueEmployees(tallinnEmployees)
                 self.fetchTartuEmployees()
-            case .failure(_):
+            case .failure(let error):
                 DispatchQueue.main.async {
                     self.tableView.refreshControl?.endRefreshing()
+                    self.showErrorAlert(message: error.localizedDescription)
                 }
             }
         }
@@ -53,15 +55,18 @@ class ContactTableViewController: UIViewController {
             switch result {
             case .success(let tartuEmployees):
                 self.addUniqueEmployees(tartuEmployees)
-                self.fetchPhoneContacts() // Fetch phone contacts after fetching employees
+                self.fetchPhoneContacts()
                 self.updateSectionsData()
                 DispatchQueue.main.async {
                     self.tableView.reloadData()
                     self.tableView.refreshControl?.endRefreshing()
+                    self.dismissLoadingMessage()
                 }
-            case .failure(_):
+            case .failure(let error):
                 DispatchQueue.main.async {
                     self.tableView.refreshControl?.endRefreshing()
+                    self.dismissLoadingMessage()
+                    self.showErrorAlert(message: error.localizedDescription)
                 }
             }
         }
@@ -103,7 +108,9 @@ class ContactTableViewController: UIViewController {
                     self.tableView.reloadData()
                 }
             } catch {
-                print("Error fetching phone contacts: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self.showErrorAlert(message: error.localizedDescription)
+                }
             }
         }
     }
@@ -115,6 +122,19 @@ class ContactTableViewController: UIViewController {
             let sortedEmployees = employeesForPosition.sorted { $0.lname < $1.lname }
             return (position: position, employees: sortedEmployees)
         }
+    }
+    func showErrorAlert(message: String) {
+        let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
+        let dismissAction = UIAlertAction(title: "Dismiss", style: .cancel, handler: nil)
+        alert.addAction(dismissAction)
+        present(alert, animated: true, completion: nil)
+    }
+    func showLoadingMessage(_ message: String) {
+        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+        present(alert, animated: true)
+    }
+    func dismissLoadingMessage() {
+        dismiss(animated: true)
     }
 }
 //MARK: - Data Source Logic
@@ -131,7 +151,8 @@ extension ContactTableViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "employeeCell", for: indexPath)
         let employee = sectionsData[indexPath.section].employees[indexPath.row]
-        cell.textLabel?.text = "\(employee.fname) \(employee.lname)"
+        cell.textLabel?.text = "\(employee.lname) \(employee.fname)"
+        cell.contentView.subviews.forEach { $0.removeFromSuperview() }
         let contactExists = phoneContactNames.contains("\(employee.fname.lowercased()) \(employee.lname.lowercased())")
         if contactExists {
             let button = UIButton(type: .system)
@@ -140,7 +161,9 @@ extension ContactTableViewController: UITableViewDataSource {
             button.tag = indexPath.row
             let buttonWidth: CGFloat = 30
             let buttonHeight: CGFloat = 30
-            button.frame = CGRect(x: cell.contentView.frame.width - buttonWidth - 10, y: (cell.contentView.frame.height - buttonHeight) / 2, width: buttonWidth, height: buttonHeight)
+            button.frame = CGRect(x: cell.contentView.frame.width - buttonWidth - 10,
+                                  y: (cell.contentView.frame.height - buttonHeight) / 2,
+                                  width: buttonWidth, height: buttonHeight)
             cell.contentView.addSubview(button)
         } else {
             for subview in cell.contentView.subviews {
