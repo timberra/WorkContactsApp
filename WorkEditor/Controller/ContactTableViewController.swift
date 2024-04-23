@@ -98,7 +98,7 @@ class ContactTableViewController: UIViewController {
             let keys = [CNContactGivenNameKey, CNContactFamilyNameKey] as [CNKeyDescriptor]
             let request = CNContactFetchRequest(keysToFetch: keys)
             do {
-                var uniquePhoneContactNames: Set<String> = Set() // Set to store unique phone contact names
+                var uniquePhoneContactNames: Set<String> = Set()
                 try store.enumerateContacts(with: request) { contact, _ in
                     let fullName = "\(contact.givenName) \(contact.familyName)"
                     uniquePhoneContactNames.insert(fullName.lowercased())
@@ -257,7 +257,6 @@ extension ContactTableViewController: UIGestureRecognizerDelegate {
         let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
         alertController.addAction(cancelAction)
         let openAction = UIAlertAction(title: "Open", style: .default) { _ in
-            // Open the phone contact for the employee
             self.openPhoneContact(for: employee)
         }
         alertController.addAction(openAction)
